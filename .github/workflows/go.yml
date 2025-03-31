@@ -1,0 +1,76 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+
+    - name: Build (amd)
+      run: |
+        go build
+        mv reposx reposx_amd
+
+    - name: Build (arm)
+      run: |
+        GOOS=linux GOARCH=arm GOARM=7 go build
+        mv reposx reposx_arm
+      
+    - name: Upload artifact (amd)
+      uses: actions/upload-artifact@v4
+      with:
+        name: reposx_amd
+        path: reposx_amd
+      
+    - name: Upload artifact (arm)
+      uses: actions/upload-artifact@v4
+      with:
+        name: reposx_arm
+        path: reposx_arm
+        
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: [ build ]
+
+    steps:
+      - name: Authenticate GitHub CLI
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Download artifact (amd)
+        uses: actions/download-artifact@v4
+        with:
+          name: reposx_amd
+
+      - name: Download artifact (arm)
+        uses: actions/download-artifact@v4
+        with:
+          name: reposx_arm
+
+      - name: Update Nightly Release
+        uses: andelf/nightly-release@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly-release
+          name: 'Nightly Release'
+          body: |
+            Automated nightly release for commit ${{ github.sha }}. This release contains all of the newest features.
+          files: |
+            ./reposx_amd
+            ./reposx_arm
