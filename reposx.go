@@ -55,7 +55,7 @@ func getLocalDir() (string, error) {
 }
 
 func downloadFile(url, filepath string) error {
-	fmt.Printf("[...] downloading %v", url)
+	fmt.Printf("[...] downloading %v\n", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -103,6 +103,9 @@ func extractTarGz(gzipStream io.Reader, destPath string) error {
 			}
 			defer outFile.Close()
 			if _, err := io.Copy(outFile, tarReader); err != nil {
+				return err
+			}
+			if err := os.Chmod(path, 0755); err != nil {
 				return err
 			}
 		}
