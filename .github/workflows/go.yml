@@ -23,7 +23,7 @@ jobs:
 
     - name: Build (amd)
       run: |
-        go build
+        GOOS=linux GOARCH=386 go build
         mv reposx reposx_amd
 
     - name: Build (arm)
