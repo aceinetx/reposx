@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // XML structures
@@ -54,6 +55,7 @@ func getLocalDir() (string, error) {
 }
 
 func downloadFile(url, filepath string) error {
+	fmt.Printf("[...] downloading %v", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -198,6 +200,7 @@ func installPackage(packageName string, packages *Packages) error {
 	}
 
 	// Extract package
+	fmt.Printf("[...] extracting %v\n", packagePath)
 	file, err := os.Open(packagePath)
 	if err != nil {
 		return err
@@ -217,12 +220,34 @@ func installPackage(packageName string, packages *Packages) error {
 	return os.Remove(packagePath)
 }
 
+func getPackagePaths() (string, error) {
+	localDir, err := getLocalDir()
+	if err != nil {
+		return "", err
+	}
+
+	entries, err := os.ReadDir(localDir)
+	if err != nil {
+		return "", err
+	}
+
+	var paths []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			paths = append(paths, filepath.Join(localDir, entry.Name()))
+		}
+	}
+
+	return strings.Join(paths, ":"), nil
+}
+
 func main() {
-	fmt.Println("reposx by aceinet (2022-2025)")
 	if len(os.Args) < 2 {
+		fmt.Println("reposx by aceinet (2022-2025)")
 		fmt.Println("usage:")
-		fmt.Println("  update - Update package list")
-		fmt.Println("  install <package> - Install package")
+		fmt.Println("  update              Update package list")
+		fmt.Println("  install <package>   Install package")
+		fmt.Println("  paths               Get package paths for shells")
 		os.Exit(1)
 	}
 
@@ -255,6 +280,14 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("[...] Package %s installed successfully\n", packageName)
+
+	case "paths":
+		paths, err := getPackagePaths()
+		if err != nil {
+			fmt.Printf("[ ! ] Error getting package paths: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(paths)
 
 	default:
 		fmt.Printf("unknown command: %s\n", command)
